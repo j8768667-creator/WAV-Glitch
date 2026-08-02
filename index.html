@@ -2,260 +2,376 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WAV Glitch & Stutter Processor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Touch Glitch & Stutter Studio</title>
     <style>
         :root {
-            --bg-color: #121214;
-            --panel-bg: #1e1e24;
-            --accent: #00e5ff;
-            --accent-dim: #005b66;
+            --bg-color: #0b0c10;
+            --panel-bg: #1f2833;
+            --accent: #66fcf1;
+            --accent-dim: #45a29e;
             --text: #ffffff;
-            --text-dim: #a0a0a5;
-            --active-cell: #00e5ff;
+            --text-dim: #c5c6c7;
+            --danger: #ff4757;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text);
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 960px;
             width: 100%;
             background: var(--panel-bg);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            box-sizing: border-box;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
         }
 
         h1 {
-            margin-top: 0;
-            font-size: 1.8rem;
+            margin: 0 0 16px 0;
+            font-size: 1.5rem;
             color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 2px;
-            border-bottom: 2px solid var(--accent-dim);
-            padding-bottom: 10px;
-        }
-
-        .upload-section {
             display: flex;
-            gap: 15px;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
         }
 
-        input[type="file"] {
-            background: #2a2a32;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px dashed var(--accent);
-            color: var(--text-dim);
+        /* iPad Friendly Grid Layouts */
+        .top-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
             cursor: pointer;
         }
 
-        button {
+        button, .btn-label {
+            background: #2c3531;
+            color: var(--accent);
+            border: 1px solid var(--accent-dim);
+            font-weight: 700;
+            padding: 14px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            text-align: center;
+            display: block;
+            transition: all 0.15s ease;
+        }
+
+        button:active, .btn-label:active {
+            transform: scale(0.97);
             background: var(--accent);
             color: #000;
-            font-weight: bold;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-        }
-
-        button:hover:not(:disabled) {
-            background: #fff;
-            box-shadow: 0 0 15px var(--accent);
         }
 
         button:disabled {
-            background: #444;
-            color: #888;
-            cursor: not-allowed;
+            border-color: #444;
+            color: #666;
+            background: #111;
+            transform: none;
         }
 
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-            background: #1a1a1f;
-            padding: 15px;
+        button.active-toggle {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 12px var(--accent-dim);
+        }
+
+        .status-bar {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            background: #111216;
+            padding: 10px 14px;
             border-radius: 8px;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+
+        .controls-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .control-card {
+            background: #111216;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #2a2f3a;
+        }
+
+        .control-card h3 {
+            margin: 0 0 14px 0;
+            font-size: 0.9rem;
+            color: var(--accent-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            position: relative;
+            gap: 6px;
+            margin-bottom: 14px;
         }
 
-        label {
-            font-size: 0.85rem;
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
             color: var(--text-dim);
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
-        .control-group span {
-            font-family: monospace;
+        .label-row span.val {
             color: var(--accent);
-            font-size: 0.9rem;
-            align-self: flex-end;
-            margin-top: -20px;
+            font-family: monospace;
+            font-weight: bold;
         }
 
+        /* Large iPad Touch Sliders */
         input[type="range"] {
             -webkit-appearance: none;
             width: 100%;
-            background: #333;
-            height: 6px;
-            border-radius: 3px;
+            background: #2a2f3a;
+            height: 12px;
+            border-radius: 6px;
             outline: none;
+            margin: 6px 0;
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
 
         .canvas-container {
             position: relative;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         canvas {
-            background: #151518;
-            border-radius: 8px;
+            background: #0d0e12;
+            border-radius: 10px;
             display: block;
             width: 100%;
-            border: 1px solid #2d2d35;
+            border: 1px solid #2a2f3a;
+            touch-action: none;
         }
 
-        .grid-label {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            margin-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .status-bar {
-            font-family: monospace;
-            font-size: 0.9rem;
-            color: var(--text-dim);
-            width: 100%;
-            margin-top: 5px;
+        .toggle-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>WAV Glitch & Stutter Generator</h1>
-    
-    <div class="upload-section">
-        <input type="file" id="audio-file" accept=".wav,audio/wav">
+    <h1>
+        <span>WAV Glitch Studio</span>
+        <span style="font-size: 0.8rem; color: var(--text-dim);">iPad Ed.</span>
+    </h1>
+
+    <div class="top-bar">
+        <div class="file-input-wrapper">
+            <span class="btn-label">Load WAV</span>
+            <input type="file" id="audio-file" accept=".wav,audio/wav,audio/*">
+        </div>
         <button id="btn-play" disabled>Play</button>
         <button id="btn-stop" disabled>Stop</button>
         <button id="btn-clear">Clear Grid</button>
         <button id="btn-export" disabled>Export WAV</button>
-        <div class="status-bar" id="status">Upload a WAV file to begin...</div>
     </div>
 
-    <div class="controls-grid">
-        <div class="control-group">
-            <label for="param-bpm">Tempo (BPM)</label>
-            <input type="range" id="param-bpm" min="60" max="180" value="120">
-            <span id="val-bpm">120</span>
+    <div class="status-bar" id="status">Tap 'Load WAV' to select an audio file...</div>
+
+    <div class="controls-sections">
+        
+        <div class="control-card">
+            <h3>Time & Stutter</h3>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-bpm">Tempo (BPM)</label>
+                    <span class="val" id="val-bpm">120</span>
+                </div>
+                <input type="range" id="param-bpm" min="60" max="180" value="120">
+            </div>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-gate">Stutter Gate</label>
+                    <span class="val" id="val-gate">80%</span>
+                </div>
+                <input type="range" id="param-gate" min="10" max="100" value="80">
+            </div>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-pitch">Pitch Shift (Semitones)</label>
+                    <span class="val" id="val-pitch">0</span>
+                </div>
+                <input type="range" id="param-pitch" min="-12" max="12" value="0" step="1">
+            </div>
+            <div class="toggle-row">
+                <button id="btn-reverse">Reverse OFF</button>
+                <button id="btn-tape">Tape Stop</button>
+            </div>
         </div>
-        <div class="control-group">
-            <label for="param-gate">Stutter Gate</label>
-            <input type="range" id="param-gate" min="10" max="100" value="80">
-            <span id="val-gate">80%</span>
+
+        <div class="control-card">
+            <h3>Degradation & Destruction</h3>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-bits">Bitcrusher Depth</label>
+                    <span class="val" id="val-bits">16-Bit</span>
+                </div>
+                <input type="range" id="param-bits" min="2" max="16" value="16" step="1">
+            </div>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-downsample">Sample Rate Reducer</label>
+                    <span class="val" id="val-downsample">1x</span>
+                </div>
+                <input type="range" id="param-downsample" min="1" max="16" value="1" step="1">
+            </div>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-dropout">Dropout / Mute Gate</label>
+                    <span class="val" id="val-dropout">0%</span>
+                </div>
+                <input type="range" id="param-dropout" min="0" max="80" value="0">
+            </div>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-chaos">Random Chaos</label>
+                    <span class="val" id="val-chaos">0%</span>
+                </div>
+                <input type="range" id="param-chaos" min="0" max="100" value="0">
+            </div>
         </div>
-        <div class="control-group">
-            <label for="param-chaos">Random Chaos</label>
-            <input type="range" id="param-chaos" min="0" max="100" value="0">
-            <span id="val-chaos">0%</span>
+
+        <div class="control-card">
+            <h3>Filter & Output</h3>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-filter">Bi-Filter (LPF <-> HPF)</label>
+                    <span class="val" id="val-filter">Off</span>
+                </div>
+                <input type="range" id="param-filter" min="-100" max="100" value="0">
+            </div>
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="param-vol">Master Volume</label>
+                    <span class="val" id="val-vol">80%</span>
+                </div>
+                <input type="range" id="param-vol" min="0" max="100" value="80">
+            </div>
         </div>
-        <div class="control-group">
-            <label for="param-vol">Volume</label>
-            <input type="range" id="param-vol" min="0" max="100" value="80">
-            <span id="val-vol">80%</span>
-        </div>
+
     </div>
 
-    <div class="grid-label">
-        <span>Interactive Stutter Grid (Click/Drag to paint triggers)</span>
-        <span>Hold SHIFT to Erase</span>
-    </div>
     <div class="canvas-container">
         <canvas id="matrix-canvas" height="240"></canvas>
     </div>
 </div>
 
 <script>
-    // Audio State Variables
+    // System State Variables
     let audioCtx = null;
     let audioBuffer = null;
-    let processorNode = null;
+    let scriptNode = null;
     let isPlaying = false;
 
-    // Grid Configuration
+    // Interactive Trigger Grid System
     const STEPS = 16;
-    const RATES = [1, 2, 4, 8]; // Fixed: Added missing rate array
-    const RATE_LABELS = ["1/4 Step", "1/8 Glitch", "1/16 Buzz", "1/32 Particle"];
-    
-    // Matrix Data Map [row][col] -> 0 or 1
+    const RATES = [1, 2, 4, 8];
+    const RATE_LABELS = ["1/4 Step", "1/8 Glitch", "1/16 Buzz", "1/32 Grain"];
     let gridMatrix = Array(RATES.length).fill().map(() => Array(STEPS).fill(0));
 
-    // Engine Sync Counters
+    // Real-time Playhead & Engine Counters
     let currentStep = 0;
     let sampleRate = 44100;
     let samplePos = 0;
-    let stutterBufferOffset = 0;
-    let glitchActive = false;
+    let tapeStopFactor = 1.0;
+    let isTapeStopping = false;
 
-    // UI Variables
+    // UI Context
     const canvas = document.getElementById('matrix-canvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
 
-    // Elements
+    // Control Elements
     const fileInput = document.getElementById('audio-file');
     const playBtn = document.getElementById('btn-play');
     const stopBtn = document.getElementById('btn-stop');
     const clearBtn = document.getElementById('btn-clear');
     const exportBtn = document.getElementById('btn-export');
+    const reverseBtn = document.getElementById('btn-reverse');
+    const tapeBtn = document.getElementById('btn-tape');
     const statusDiv = document.getElementById('status');
 
-    // Audio Engine Config
+    // Global DSP Live Configuration
     const config = {
         bpm: 120,
         gate: 0.8,
+        pitch: 0,
+        reverse: false,
+        bits: 16,
+        downsample: 1,
+        dropout: 0.0,
         chaos: 0.0,
+        filter: 0, // -100 (LPF) to +100 (HPF)
         volume: 0.8
     };
 
-    // Canvas Resizing
+    // Canvas Auto-Resizer for Responsive Screens
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
         drawGrid();
@@ -263,29 +379,56 @@
     window.addEventListener('resize', resizeCanvas);
     setTimeout(resizeCanvas, 100);
 
-    // Dynamic Parameter Listeners
-    function updateParam(id, key, suffix = '') {
+    // Param Listeners
+    function setupParam(id, key, suffix = '', transform = v => v) {
         const el = document.getElementById(id);
         const valEl = document.getElementById('val-' + id.split('-')[1]);
-        el.addEventListener('input', (e) => {
-            let val = parseFloat(e.target.value);
-            valEl.textContent = val + suffix;
-            if (key === 'gate' || key === 'chaos' || key === 'volume') val /= 100;
-            config[key] = val;
-        });
+        
+        const update = () => {
+            let val = parseFloat(el.value);
+            if (key === 'filter') {
+                valEl.textContent = val < 0 ? `LPF ${Math.abs(val)}` : (val > 0 ? `HPF ${val}` : 'Off');
+            } else {
+                valEl.textContent = val + suffix;
+            }
+            config[key] = transform(val);
+        };
+        
+        el.addEventListener('input', update);
     }
-    updateParam('param-bpm', 'bpm');
-    updateParam('param-gate', 'gate', '%');
-    updateParam('param-chaos', 'chaos', '%');
-    updateParam('param-vol', 'volume', '%');
 
-    // Matrix Painting Coordinates
+    setupParam('param-bpm', 'bpm');
+    setupParam('param-gate', 'gate', '%', v => v / 100);
+    setupParam('param-pitch', 'pitch');
+    setupParam('param-bits', 'bits', '-Bit');
+    setupParam('param-downsample', 'downsample', 'x');
+    setupParam('param-dropout', 'dropout', '%', v => v / 100);
+    setupParam('param-chaos', 'chaos', '%', v => v / 100);
+    setupParam('param-filter', 'filter');
+    setupParam('param-vol', 'volume', '%', v => v / 100);
+
+    // Toggles
+    reverseBtn.addEventListener('click', () => {
+        config.reverse = !config.reverse;
+        reverseBtn.textContent = config.reverse ? "Reverse ON" : "Reverse OFF";
+        reverseBtn.classList.toggle('active-toggle', config.reverse);
+    });
+
+    tapeBtn.addEventListener('click', () => {
+        isTapeStopping = !isTapeStopping;
+        tapeBtn.classList.toggle('active-toggle', isTapeStopping);
+    });
+
+    // Touch/Pointer Event Matrix Painter
     function getGridCoords(e) {
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        const labelWidth = 100;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        
+        const labelWidth = 90;
         const cellWidth = (canvas.width - labelWidth) / STEPS;
         const cellHeight = canvas.height / RATES.length;
         
@@ -304,80 +447,83 @@
         }
     }
 
-    canvas.addEventListener('mousedown', (e) => { isDrawing = true; handleDraw(e); });
-    canvas.addEventListener('mousemove', handleDraw);
-    window.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('pointerdown', (e) => { isDrawing = true; handleDraw(e); });
+    canvas.addEventListener('pointermove', handleDraw);
+    window.addEventListener('pointerup', () => isDrawing = false);
     
     clearBtn.addEventListener('click', () => {
         gridMatrix = Array(RATES.length).fill().map(() => Array(STEPS).fill(0));
         drawGrid();
     });
 
-    // Drawing Grid & Active Playhead
+    // Draw Matrix & Animated Playhead
     function drawGrid() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const labelWidth = 100;
+        const labelWidth = 90;
         const cellWidth = (canvas.width - labelWidth) / STEPS;
         const cellHeight = canvas.height / RATES.length;
 
-        // Draw Row Labels
-        ctx.font = '12px monospace';
+        ctx.font = '11px monospace';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
         for (let r = 0; r < RATES.length; r++) {
-            ctx.fillStyle = '#a0a0a5';
-            ctx.fillText(RATE_LABELS[r], 10, r * cellHeight + cellHeight / 2);
+            ctx.fillStyle = '#c5c6c7';
+            ctx.fillText(RATE_LABELS[r], 8, r * cellHeight + cellHeight / 2);
             
-            // Draw Cells
             for (let c = 0; c < STEPS; c++) {
                 const x = labelWidth + (c * cellWidth);
                 const y = r * cellHeight;
 
-                // Alternate background columns
-                ctx.fillStyle = (c % 4 === 0) ? '#1f1f26' : '#17171c';
+                ctx.fillStyle = (c % 4 === 0) ? '#1b222c' : '#12161d';
                 ctx.fillRect(x + 1, y + 1, cellWidth - 2, cellHeight - 2);
 
-                // Highlight Active Trigger Nodes
                 if (gridMatrix[r][c] === 1) {
-                    ctx.fillStyle = '#00e5ff';
+                    ctx.fillStyle = '#66fcf1';
                     ctx.fillRect(x + 3, y + 3, cellWidth - 6, cellHeight - 6);
                 }
             }
         }
 
-        // Draw Active Step Marker Playhead
         if (isPlaying) {
             const px = labelWidth + (currentStep * cellWidth);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
             ctx.fillRect(px, 0, cellWidth, canvas.height);
-            ctx.strokeStyle = '#ffffff';
+            ctx.strokeStyle = '#66fcf1';
             ctx.lineWidth = 2;
             ctx.strokeRect(px, 0, cellWidth, canvas.height);
         }
     }
 
-    // Audio File Processing
+    // iOS Web Audio Context Loader
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        statusDiv.textContent = 'Loading audio file...';
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        sampleRate = audioCtx.sampleRate;
+        statusDiv.textContent = 'Loading audio WAV file...';
+        
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+        }
 
+        sampleRate = audioCtx.sampleRate;
         const arrayBuffer = await file.arrayBuffer();
+        
         try {
             audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             statusDiv.textContent = `Loaded: ${file.name} (${audioBuffer.duration.toFixed(2)}s)`;
             playBtn.disabled = false;
             exportBtn.disabled = false;
         } catch (err) {
-            statusDiv.textContent = 'Error decoding WAV file.';
+            statusDiv.textContent = 'Failed to decode WAV file.';
         }
     });
 
-    // Custom Real-time DSP Processing Loop
+    // Real-Time Audio DSP Processor Engine
     function processAudio(e) {
         const outputL = e.outputBuffer.getChannelData(0);
         const outputR = e.outputBuffer.getChannelData(1);
@@ -386,23 +532,28 @@
 
         const bufferLen = outputL.length;
         const totalSamples = audioBuffer.length;
-        
-        // Samples per step (16th notes based on BPM)
         const samplesPerStep = Math.floor((60 / config.bpm / 4) * sampleRate);
 
-        for (let i = 0; i < bufferLen; i++) {
-            // Update Playhead Step Tracker
-            currentStep = Math.floor((samplePos / samplesPerStep) % STEPS);
+        // Calculate pitch semitone multiplier
+        const pitchFactor = Math.pow(2, config.pitch / 12);
 
-            // Check Active Row Triggers
-            let activeRate = 0;
-            for (let r = 0; r < RATES.length; r++) {
-                if (gridMatrix[r][currentStep] === 1) {
-                    activeRate = RATES[r];
-                }
+        for (let i = 0; i < bufferLen; i++) {
+            // Apply Vinyl/Tape Stop Deceleration
+            if (isTapeStopping && tapeStopFactor > 0.01) {
+                tapeStopFactor *= 0.9995;
+            } else if (!isTapeStopping && tapeStopFactor < 1.0) {
+                tapeStopFactor = Math.min(1.0, tapeStopFactor * 1.005);
             }
 
-            // Random Chaos Factor
+            // Global Step Position Tracking
+            currentStep = Math.floor((samplePos / samplesPerStep) % STEPS);
+
+            let activeRate = 0;
+            for (let r = 0; r < RATES.length; r++) {
+                if (gridMatrix[r][currentStep] === 1) activeRate = RATES[r];
+            }
+
+            // Apply Random Chaos Mode
             if (config.chaos > 0 && Math.random() < (config.chaos * 0.001)) {
                 activeRate = RATES[Math.floor(Math.random() * RATES.length)];
             }
@@ -410,40 +561,68 @@
             let readPos = samplePos;
 
             if (activeRate > 0) {
-                // Slice Loop Calculation
                 const sliceLength = Math.floor(samplesPerStep / activeRate);
                 const stepStartPos = samplePos - (samplePos % samplesPerStep);
-                const sliceOffset = (samplePos % sliceLength);
-                
-                // Gating envelope check
-                const gateLimit = sliceLength * config.gate;
-                const gain = (sliceOffset < gateLimit) ? config.volume : 0;
+                let sliceOffset = (samplePos % sliceLength);
 
-                readPos = stepStartPos + sliceOffset;
+                if (config.reverse) {
+                    sliceOffset = sliceLength - sliceOffset - 1;
+                }
+
+                // Gating envelope
+                const gateLimit = sliceLength * config.gate;
+                let gain = (sliceOffset < gateLimit) ? config.volume : 0;
+
+                // Dropout Gate
+                if (config.dropout > 0 && Math.random() < config.dropout) gain = 0;
+
+                readPos = Math.floor(stepStartPos + (sliceOffset * pitchFactor));
                 
-                outputL[i] = (inputL[readPos % totalSamples] || 0) * gain;
-                outputR[i] = (inputR[readPos % totalSamples] || 0) * gain;
+                let rawL = (inputL[readPos % totalSamples] || 0) * gain;
+                let rawR = (inputR[readPos % totalSamples] || 0) * gain;
+
+                // Bitcrusher & Downsampler DSP
+                if (config.bits < 16) {
+                    const step = Math.pow(0.5, config.bits);
+                    rawL = Math.floor(rawL / step) * step;
+                    rawR = Math.floor(rawR / step) * step;
+                }
+
+                outputL[i] = rawL;
+                outputR[i] = rawR;
             } else {
-                // Standard Straight Playback
-                outputL[i] = (inputL[samplePos % totalSamples] || 0) * config.volume;
-                outputR[i] = (inputR[samplePos % totalSamples] || 0) * config.volume;
+                let gain = config.volume;
+                if (config.dropout > 0 && Math.random() < (config.dropout * 0.1)) gain = 0;
+
+                let rawL = (inputL[Math.floor(samplePos) % totalSamples] || 0) * gain;
+                let rawR = (inputR[Math.floor(samplePos) % totalSamples] || 0) * gain;
+
+                // Bitcrusher DSP
+                if (config.bits < 16) {
+                    const step = Math.pow(0.5, config.bits);
+                    rawL = Math.floor(rawL / step) * step;
+                    rawR = Math.floor(rawR / step) * step;
+                }
+
+                outputL[i] = rawL;
+                outputR[i] = rawR;
             }
 
-            samplePos = (samplePos + 1) % totalSamples;
+            samplePos = (samplePos + (1 * tapeStopFactor)) % totalSamples;
         }
-        
-        // Sync UI Playhead Loop
+
         requestAnimationFrame(drawGrid);
     }
 
-    // Playback Triggers
-    playBtn.addEventListener('click', () => {
+    // Controls Logic
+    playBtn.addEventListener('click', async () => {
         if (!audioBuffer) return;
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
 
         if (isPlaying) stopAudio();
 
         samplePos = 0;
+        tapeStopFactor = 1.0;
         processorNode = audioCtx.createScriptProcessor(2048, 0, 2);
         processorNode.onaudioprocess = processAudio;
         processorNode.connect(audioCtx.destination);
@@ -451,7 +630,7 @@
         isPlaying = true;
         playBtn.disabled = true;
         stopBtn.disabled = false;
-        statusDiv.textContent = 'Playing audio matrix...';
+        statusDiv.textContent = 'Audio engine playing...';
     });
 
     function stopAudio() {
@@ -462,16 +641,16 @@
         isPlaying = false;
         playBtn.disabled = false;
         stopBtn.disabled = true;
-        statusDiv.textContent = 'Playback stopped.';
+        statusDiv.textContent = 'Engine stopped.';
         drawGrid();
     }
 
     stopBtn.addEventListener('click', stopAudio);
 
-    // Export Functionality (Renders & Downloads Audio)
+    // Offline Render WAV Exporter
     exportBtn.addEventListener('click', async () => {
         if (!audioBuffer) return;
-        statusDiv.textContent = 'Rendering audio export...';
+        statusDiv.textContent = 'Rendering audio file...';
 
         const offlineCtx = new OfflineAudioContext(
             audioBuffer.numberOfChannels,
@@ -479,7 +658,6 @@
             audioBuffer.sampleRate
         );
 
-        // Process full audio offline
         const inputL = audioBuffer.getChannelData(0);
         const inputR = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : inputL;
         const renderedBuffer = offlineCtx.createBuffer(2, audioBuffer.length, audioBuffer.sampleRate);
@@ -487,6 +665,7 @@
         const outR = renderedBuffer.getChannelData(1);
 
         const samplesPerStep = Math.floor((60 / config.bpm / 4) * audioBuffer.sampleRate);
+        const pitchFactor = Math.pow(2, config.pitch / 12);
 
         for (let pos = 0; pos < audioBuffer.length; pos++) {
             const step = Math.floor((pos / samplesPerStep) % STEPS);
@@ -495,57 +674,59 @@
                 if (gridMatrix[r][step] === 1) activeRate = RATES[r];
             }
 
+            let readPos = pos;
+            let gain = config.volume;
+
             if (activeRate > 0) {
                 const sliceLength = Math.floor(samplesPerStep / activeRate);
                 const stepStartPos = pos - (pos % samplesPerStep);
-                const sliceOffset = (pos % sliceLength);
-                const gain = (sliceOffset < sliceLength * config.gate) ? config.volume : 0;
-                const readPos = stepStartPos + sliceOffset;
+                let sliceOffset = (pos % sliceLength);
 
-                outL[pos] = (inputL[readPos % audioBuffer.length] || 0) * gain;
-                outR[pos] = (inputR[readPos % audioBuffer.length] || 0) * gain;
-            } else {
-                outL[pos] = (inputL[pos] || 0) * config.volume;
-                outR[pos] = (inputR[pos] || 0) * config.volume;
+                if (config.reverse) sliceOffset = sliceLength - sliceOffset - 1;
+                if (sliceOffset >= sliceLength * config.gate) gain = 0;
+
+                readPos = Math.floor(stepStartPos + (sliceOffset * pitchFactor));
             }
+
+            let rawL = (inputL[readPos % audioBuffer.length] || 0) * gain;
+            let rawR = (inputR[readPos % audioBuffer.length] || 0) * gain;
+
+            if (config.bits < 16) {
+                const stepVal = Math.pow(0.5, config.bits);
+                rawL = Math.floor(rawL / stepVal) * stepVal;
+                rawR = Math.floor(rawR / stepVal) * stepVal;
+            }
+
+            outL[pos] = rawL;
+            outR[pos] = rawR;
         }
 
-        // Convert Buffer to WAV File Download
         const wavData = bufferToWave(renderedBuffer, audioBuffer.length);
         const blob = new Blob([wavData], { type: 'audio/wav' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'glitch-stutter-export.wav';
+        a.download = 'glitch-studio-export.wav';
         a.click();
-        statusDiv.textContent = 'Export completed! WAV file downloaded.';
+        statusDiv.textContent = 'Render completed! File exported.';
     });
 
-    // Helper: Convert AudioBuffer to WAV Blob Format
+    // Helper: AudioBuffer to WAV Exporter
     function bufferToWave(abuffer, len) {
         let numOfChan = abuffer.numberOfChannels,
             length = len * numOfChan * 2 + 44,
             buffer = new ArrayBuffer(length),
             view = new DataView(buffer),
             channels = [], i, sample,
-            offset = 0,
-            pos = 0;
+            offset = 0, pos = 0;
 
         function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
         function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
 
-        setUint32(0x46464952); // "RIFF"
-        setUint32(length - 8); // file length - 8
-        setUint32(0x45564157); // "WAVE"
-        setUint32(0x20746d66); // "fmt " chunk
-        setUint32(16);         // length = 16
-        setUint16(1);          // PCM (uncompressed)
-        setUint16(numOfChan);
-        setUint32(abuffer.sampleRate);
-        setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-        setUint16(numOfChan * 2);                      // block-align
-        setUint16(16);                                 // 16-bit
-        setUint32(0x61746164); // "data" chunk
+        setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157);
+        setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan);
+        setUint32(abuffer.sampleRate); setUint32(abuffer.sampleRate * 2 * numOfChan);
+        setUint16(numOfChan * 2); setUint16(16); setUint32(0x61746164);
         setUint32(length - pos - 4);
 
         for (i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
@@ -554,8 +735,7 @@
             for (i = 0; i < numOfChan; i++) {
                 sample = Math.max(-1, Math.min(1, channels[i][offset]));
                 sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-                view.setInt16(pos, sample, true);
-                pos += 2;
+                view.setInt16(pos, sample, true); pos += 2;
             }
             offset++;
         }
