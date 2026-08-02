@@ -20,7 +20,7 @@
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
-            touch-action: manipulation; /* Prevents double-tap zoom on mobile devices */
+            touch-action: manipulation;
         }
 
         html, body {
@@ -90,7 +90,6 @@
             display: inline-block;
         }
 
-        /* 16px font-size prevents iOS Safari from auto-zooming when focused */
         input[type=file], input[type=range], button {
             font-size: 16px !important; 
         }
@@ -222,13 +221,13 @@
             display: block;
             width: 100%;
             border: 1px solid #1e2638;
-            touch-action: none; /* Disables all gesture zoom/scroll over matrix canvas */
+            touch-action: none;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="app-wrapper">
     <div class="header">
         <h1>Glitch & Stutter Processor</h1>
         <div class="subtitle">Audio & Video</div>
@@ -236,7 +235,7 @@
 
     <div class="top-bar">
         <div class="file-btn-wrapper">
-            <span class="btn-label">Load WAV / Video</span>
+            <span class="btn-label" id="lbl-file">Load WAV / Video</span>
             <input type="file" id="media-file" accept="audio/*,video/*,.wav,.mp3,.mp4,.webm,.mov,.m4a">
         </div>
         <button id="btn-play" disabled>Play</button>
@@ -292,13 +291,11 @@
 </div>
 
 <script>
-    // Audio Context State
     let audioCtx = null;
     let audioBuffer = null;
     let scriptNode = null;
     let isPlaying = false;
 
-    // Grid System Rows Configuration
     const STEPS = 16;
     const ROWS = [
         { label: "1/2 Beat",    rate: 0.5, type: "rate",    color: "#00e5ff" },
@@ -328,6 +325,7 @@
     const clearBtn = document.getElementById('btn-clear');
     const exportBtn = document.getElementById('btn-export');
     const statusDiv = document.getElementById('status');
+    const appWrapper = document.getElementById('app-wrapper');
 
     const config = {
         bpm: 120,
@@ -335,6 +333,19 @@
         chaos: 0.0,
         volume: 0.8
     };
+
+    // Unlock Web Audio Context on early user gesture
+    async function ensureAudioContextUnlocked() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+        }
+    }
+
+    appWrapper.addEventListener('pointerdown', ensureAudioContextUnlocked, { once: true });
+    fileInput.addEventListener('pointerdown', ensureAudioContextUnlocked);
 
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
@@ -433,67 +444,47 @@
         }
     }
 
-    // --- OPTIMIZED FAST MEDIA & VIDEO LOADER ---
+    // --- NON-BLOCKING FAST MEDIA DECODER ---
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         statusDiv.classList.remove('error');
-        statusDiv.textContent = `Reading media stream from "${file.name}"... 0%`;
+        statusDiv.textContent = `Reading media file "${file.name}"...`;
 
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        try {
+            await ensureAudioContextUnlocked();
+            sampleRate = audioCtx.sampleRate;
 
-        if (audioCtx.state === 'suspended') {
-            await audioCtx.resume();
-        }
-
-        sampleRate = audioCtx.sampleRate;
-
-        // Progressive File Reader (shows load progress for large video files)
-        const reader = new FileReader();
-
-        reader.onprogress = (evt) => {
-            if (evt.lengthComputable) {
-                const percent = Math.round((evt.loaded / evt.total) * 100);
-                statusDiv.textContent = `Reading media stream... ${percent}%`;
-            }
-        };
-
-        reader.onload = async () => {
-            statusDiv.textContent = `Extracting audio stream from "${file.name}"...`;
+            // Direct Memory Transfer
+            const arrayBuffer = await file.arrayBuffer();
             
-            try {
-                const bufferCopy = reader.result.slice(0); // Clone buffer for iOS safety
-                
-                audioBuffer = await new Promise((resolve, reject) => {
-                    const res = audioCtx.decodeAudioData(
-                        bufferCopy,
+            statusDiv.textContent = `Decoding audio stream from "${file.name}"...`;
+
+            // Non-blocking Promise wrapper with timeout safety
+            const decodedData = await Promise.race([
+                new Promise((resolve, reject) => {
+                    audioCtx.decodeAudioData(
+                        arrayBuffer.slice(0),
                         decoded => resolve(decoded),
-                        err => reject(err || new Error('Format not supported'))
+                        err => reject(err || new Error('Format decoding failed.'))
                     );
-                    if (res && typeof res.then === 'function') {
-                        res.then(resolve).catch(reject);
-                    }
-                });
+                }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Audio decoding timed out.')), 30000)
+                )
+            ]);
 
-                statusDiv.textContent = `Ready: ${file.name} (${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.numberOfChannels} ch)`;
-                playBtn.disabled = false;
-                exportBtn.disabled = false;
-            } catch (err) {
-                console.error(err);
-                statusDiv.classList.add('error');
-                statusDiv.textContent = `Unable to extract audio track. Ensure the video or audio file contains a valid audio stream.`;
-            }
-        };
+            audioBuffer = decodedData;
+            statusDiv.textContent = `Ready: ${file.name} (${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.numberOfChannels} ch)`;
+            playBtn.disabled = false;
+            exportBtn.disabled = false;
 
-        reader.onerror = () => {
+        } catch (err) {
+            console.error(err);
             statusDiv.classList.add('error');
-            statusDiv.textContent = `Error reading file.`;
-        };
-
-        reader.readAsArrayBuffer(file);
+            statusDiv.textContent = `Error: Unable to extract audio from file. Make sure the file contains a valid audio track.`;
+        }
     });
 
     function processAudio(e) {
@@ -574,7 +565,7 @@
 
     playBtn.addEventListener('click', async () => {
         if (!audioBuffer) return;
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        await ensureAudioContextUnlocked();
 
         if (isPlaying) stopAudio();
 
