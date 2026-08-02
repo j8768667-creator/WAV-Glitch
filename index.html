@@ -12,6 +12,7 @@
             --accent-dim: #005b66;
             --text: #ffffff;
             --text-dim: #a0a0a5;
+            --active-cell: #00e5ff;
         }
 
         body {
@@ -32,6 +33,7 @@
             border-radius: 12px;
             padding: 24px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
         }
 
         h1 {
@@ -66,7 +68,7 @@
             color: #000;
             font-weight: bold;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 18px;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -86,7 +88,7 @@
 
         .controls-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 20px;
             margin-bottom: 25px;
             background: #1a1a1f;
@@ -98,6 +100,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            position: relative;
         }
 
         label {
@@ -150,13 +153,16 @@
             font-size: 0.8rem;
             color: var(--text-dim);
             margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
         }
 
         .status-bar {
             font-family: monospace;
             font-size: 0.9rem;
             color: var(--text-dim);
-            margin-top: 10px;
+            width: 100%;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -170,6 +176,7 @@
         <button id="btn-play" disabled>Play</button>
         <button id="btn-stop" disabled>Stop</button>
         <button id="btn-clear">Clear Grid</button>
+        <button id="btn-export" disabled>Export WAV</button>
         <div class="status-bar" id="status">Upload a WAV file to begin...</div>
     </div>
 
@@ -189,9 +196,17 @@
             <input type="range" id="param-chaos" min="0" max="100" value="0">
             <span id="val-chaos">0%</span>
         </div>
+        <div class="control-group">
+            <label for="param-vol">Volume</label>
+            <input type="range" id="param-vol" min="0" max="100" value="80">
+            <span id="val-vol">80%</span>
+        </div>
     </div>
 
-    <div class="grid-label">Interactive Stutter Grid (Click/Drag to paint triggers)</div>
+    <div class="grid-label">
+        <span>Interactive Stutter Grid (Click/Drag to paint triggers)</span>
+        <span>Hold SHIFT to Erase</span>
+    </div>
     <div class="canvas-container">
         <canvas id="matrix-canvas" height="240"></canvas>
     </div>
@@ -201,23 +216,25 @@
     // Audio State Variables
     let audioCtx = null;
     let audioBuffer = null;
-    let scriptNode = null; // Standard fallback mechanism for clean cross-browser dynamic buffer frame access
+    let processorNode = null;
     let isPlaying = false;
 
-    // Grid Matrix System Configuration
+    // Grid Configuration
     const STEPS = 16;
-    const RATES =; // Subdivisions relative to a beat (quarter, eighth, sixteenth, thirty-second)
+    const RATES = [1, 2, 4, 8]; // Fixed: Added missing rate array
     const RATE_LABELS = ["1/4 Step", "1/8 Glitch", "1/16 Buzz", "1/32 Particle"];
     
-    // Matrix State Matrix Data Map [row][col] -> 0 or 1
+    // Matrix Data Map [row][col] -> 0 or 1
     let gridMatrix = Array(RATES.length).fill().map(() => Array(STEPS).fill(0));
 
-    // Global Interactive Sync Clocks
+    // Engine Sync Counters
     let currentStep = 0;
     let sampleRate = 44100;
-    let globalPlayheadSamples = 0;
+    let samplePos = 0;
+    let stutterBufferOffset = 0;
+    let glitchActive = false;
 
-    // Interface Variables
+    // UI Variables
     const canvas = document.getElementById('matrix-canvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
@@ -227,16 +244,18 @@
     const playBtn = document.getElementById('btn-play');
     const stopBtn = document.getElementById('btn-stop');
     const clearBtn = document.getElementById('btn-clear');
+    const exportBtn = document.getElementById('btn-export');
     const statusDiv = document.getElementById('status');
 
-    // Live Config Map
+    // Audio Engine Config
     const config = {
         bpm: 120,
         gate: 0.8,
-        chaos: 0.0
+        chaos: 0.0,
+        volume: 0.8
     };
 
-    // Initialize Canvas Dimensions dynamically
+    // Canvas Resizing
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
         drawGrid();
@@ -244,31 +263,33 @@
     window.addEventListener('resize', resizeCanvas);
     setTimeout(resizeCanvas, 100);
 
-    // Dynamic UI Updates
+    // Dynamic Parameter Listeners
     function updateParam(id, key, suffix = '') {
         const el = document.getElementById(id);
         const valEl = document.getElementById('val-' + id.split('-')[1]);
         el.addEventListener('input', (e) => {
             let val = parseFloat(e.target.value);
             valEl.textContent = val + suffix;
-            if (key === 'gate' || key === 'chaos') val /= 100;
+            if (key === 'gate' || key === 'chaos' || key === 'volume') val /= 100;
             config[key] = val;
         });
     }
     updateParam('param-bpm', 'bpm');
     updateParam('param-gate', 'gate', '%');
     updateParam('param-chaos', 'chaos', '%');
+    updateParam('param-vol', 'volume', '%');
 
-    // Matrix Grid Painter logic
+    // Matrix Painting Coordinates
     function getGridCoords(e) {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         
-        const cellWidth = canvas.width / (STEPS + 1); // Extra column for text tags
+        const labelWidth = 100;
+        const cellWidth = (canvas.width - labelWidth) / STEPS;
         const cellHeight = canvas.height / RATES.length;
         
-        const col = Math.floor((x - cellWidth) / cellWidth);
+        const col = Math.floor((x - labelWidth) / cellWidth);
         const row = Math.floor(y / cellHeight);
         
         return { row, col };
@@ -278,7 +299,7 @@
         if (!isDrawing) return;
         const { row, col } = getGridCoords(e);
         if (col >= 0 && col < STEPS && row >= 0 && row < RATES.length) {
-            gridMatrix[row][col] = e.shiftKey ? 0 : 1; // Hold Shift key to erase structural nodes cleanly
+            gridMatrix[row][col] = e.shiftKey ? 0 : 1;
             drawGrid();
         }
     }
@@ -286,34 +307,260 @@
     canvas.addEventListener('mousedown', (e) => { isDrawing = true; handleDraw(e); });
     canvas.addEventListener('mousemove', handleDraw);
     window.addEventListener('mouseup', () => isDrawing = false);
+    
     clearBtn.addEventListener('click', () => {
         gridMatrix = Array(RATES.length).fill().map(() => Array(STEPS).fill(0));
         drawGrid();
     });
 
-    // Draw Dynamic Interface Vector Grid
+    // Drawing Grid & Active Playhead
     function drawGrid() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const cellWidth = canvas.width / (STEPS + 1);
+        const labelWidth = 100;
+        const cellWidth = (canvas.width - labelWidth) / STEPS;
         const cellHeight = canvas.height / RATES.length;
 
-        // Draw Row Titles / Indicators
-        ctx.font = '10px monospace';
+        // Draw Row Labels
+        ctx.font = '12px monospace';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
         for (let r = 0; r < RATES.length; r++) {
             ctx.fillStyle = '#a0a0a5';
-            ctx.fillText(RATE_LABELS[r], 8, r * cellHeight + cellHeight / 2);
+            ctx.fillText(RATE_LABELS[r], 10, r * cellHeight + cellHeight / 2);
             
-            // Grid Blocks Loop
+            // Draw Cells
             for (let c = 0; c < STEPS; c++) {
-                const x = cellWidth + (c * cellWidth);
+                const x = labelWidth + (c * cellWidth);
                 const y = r * cellHeight;
 
-                // Alternate structural backgrounds cleanly for scannability
-                ctx.fillStyle = (c % 4 === 0) ? '#1c1c22' : '#17171c';
+                // Alternate background columns
+                ctx.fillStyle = (c % 4 === 0) ? '#1f1f26' : '#17171c';
                 ctx.fillRect(x + 1, y + 1, cellWidth - 2, cellHeight - 2);
 
+                // Highlight Active Trigger Nodes
                 if (gridMatrix[r][c] === 1) {
-                    ctx.fillStyle = 'rgba(0, 229, 255, 0.3)';
+                    ctx.fillStyle = '#00e5ff';
+                    ctx.fillRect(x + 3, y + 3, cellWidth - 6, cellHeight - 6);
+                }
+            }
+        }
+
+        // Draw Active Step Marker Playhead
+        if (isPlaying) {
+            const px = labelWidth + (currentStep * cellWidth);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.fillRect(px, 0, cellWidth, canvas.height);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px, 0, cellWidth, canvas.height);
+        }
+    }
+
+    // Audio File Processing
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        statusDiv.textContent = 'Loading audio file...';
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        sampleRate = audioCtx.sampleRate;
+
+        const arrayBuffer = await file.arrayBuffer();
+        try {
+            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            statusDiv.textContent = `Loaded: ${file.name} (${audioBuffer.duration.toFixed(2)}s)`;
+            playBtn.disabled = false;
+            exportBtn.disabled = false;
+        } catch (err) {
+            statusDiv.textContent = 'Error decoding WAV file.';
+        }
+    });
+
+    // Custom Real-time DSP Processing Loop
+    function processAudio(e) {
+        const outputL = e.outputBuffer.getChannelData(0);
+        const outputR = e.outputBuffer.getChannelData(1);
+        const inputL = audioBuffer.getChannelData(0);
+        const inputR = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : inputL;
+
+        const bufferLen = outputL.length;
+        const totalSamples = audioBuffer.length;
+        
+        // Samples per step (16th notes based on BPM)
+        const samplesPerStep = Math.floor((60 / config.bpm / 4) * sampleRate);
+
+        for (let i = 0; i < bufferLen; i++) {
+            // Update Playhead Step Tracker
+            currentStep = Math.floor((samplePos / samplesPerStep) % STEPS);
+
+            // Check Active Row Triggers
+            let activeRate = 0;
+            for (let r = 0; r < RATES.length; r++) {
+                if (gridMatrix[r][currentStep] === 1) {
+                    activeRate = RATES[r];
+                }
+            }
+
+            // Random Chaos Factor
+            if (config.chaos > 0 && Math.random() < (config.chaos * 0.001)) {
+                activeRate = RATES[Math.floor(Math.random() * RATES.length)];
+            }
+
+            let readPos = samplePos;
+
+            if (activeRate > 0) {
+                // Slice Loop Calculation
+                const sliceLength = Math.floor(samplesPerStep / activeRate);
+                const stepStartPos = samplePos - (samplePos % samplesPerStep);
+                const sliceOffset = (samplePos % sliceLength);
+                
+                // Gating envelope check
+                const gateLimit = sliceLength * config.gate;
+                const gain = (sliceOffset < gateLimit) ? config.volume : 0;
+
+                readPos = stepStartPos + sliceOffset;
+                
+                outputL[i] = (inputL[readPos % totalSamples] || 0) * gain;
+                outputR[i] = (inputR[readPos % totalSamples] || 0) * gain;
+            } else {
+                // Standard Straight Playback
+                outputL[i] = (inputL[samplePos % totalSamples] || 0) * config.volume;
+                outputR[i] = (inputR[samplePos % totalSamples] || 0) * config.volume;
+            }
+
+            samplePos = (samplePos + 1) % totalSamples;
+        }
+        
+        // Sync UI Playhead Loop
+        requestAnimationFrame(drawGrid);
+    }
+
+    // Playback Triggers
+    playBtn.addEventListener('click', () => {
+        if (!audioBuffer) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        if (isPlaying) stopAudio();
+
+        samplePos = 0;
+        processorNode = audioCtx.createScriptProcessor(2048, 0, 2);
+        processorNode.onaudioprocess = processAudio;
+        processorNode.connect(audioCtx.destination);
+
+        isPlaying = true;
+        playBtn.disabled = true;
+        stopBtn.disabled = false;
+        statusDiv.textContent = 'Playing audio matrix...';
+    });
+
+    function stopAudio() {
+        if (processorNode) {
+            processorNode.disconnect();
+            processorNode = null;
+        }
+        isPlaying = false;
+        playBtn.disabled = false;
+        stopBtn.disabled = true;
+        statusDiv.textContent = 'Playback stopped.';
+        drawGrid();
+    }
+
+    stopBtn.addEventListener('click', stopAudio);
+
+    // Export Functionality (Renders & Downloads Audio)
+    exportBtn.addEventListener('click', async () => {
+        if (!audioBuffer) return;
+        statusDiv.textContent = 'Rendering audio export...';
+
+        const offlineCtx = new OfflineAudioContext(
+            audioBuffer.numberOfChannels,
+            audioBuffer.length,
+            audioBuffer.sampleRate
+        );
+
+        // Process full audio offline
+        const inputL = audioBuffer.getChannelData(0);
+        const inputR = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : inputL;
+        const renderedBuffer = offlineCtx.createBuffer(2, audioBuffer.length, audioBuffer.sampleRate);
+        const outL = renderedBuffer.getChannelData(0);
+        const outR = renderedBuffer.getChannelData(1);
+
+        const samplesPerStep = Math.floor((60 / config.bpm / 4) * audioBuffer.sampleRate);
+
+        for (let pos = 0; pos < audioBuffer.length; pos++) {
+            const step = Math.floor((pos / samplesPerStep) % STEPS);
+            let activeRate = 0;
+            for (let r = 0; r < RATES.length; r++) {
+                if (gridMatrix[r][step] === 1) activeRate = RATES[r];
+            }
+
+            if (activeRate > 0) {
+                const sliceLength = Math.floor(samplesPerStep / activeRate);
+                const stepStartPos = pos - (pos % samplesPerStep);
+                const sliceOffset = (pos % sliceLength);
+                const gain = (sliceOffset < sliceLength * config.gate) ? config.volume : 0;
+                const readPos = stepStartPos + sliceOffset;
+
+                outL[pos] = (inputL[readPos % audioBuffer.length] || 0) * gain;
+                outR[pos] = (inputR[readPos % audioBuffer.length] || 0) * gain;
+            } else {
+                outL[pos] = (inputL[pos] || 0) * config.volume;
+                outR[pos] = (inputR[pos] || 0) * config.volume;
+            }
+        }
+
+        // Convert Buffer to WAV File Download
+        const wavData = bufferToWave(renderedBuffer, audioBuffer.length);
+        const blob = new Blob([wavData], { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'glitch-stutter-export.wav';
+        a.click();
+        statusDiv.textContent = 'Export completed! WAV file downloaded.';
+    });
+
+    // Helper: Convert AudioBuffer to WAV Blob Format
+    function bufferToWave(abuffer, len) {
+        let numOfChan = abuffer.numberOfChannels,
+            length = len * numOfChan * 2 + 44,
+            buffer = new ArrayBuffer(length),
+            view = new DataView(buffer),
+            channels = [], i, sample,
+            offset = 0,
+            pos = 0;
+
+        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+        setUint32(0x46464952); // "RIFF"
+        setUint32(length - 8); // file length - 8
+        setUint32(0x45564157); // "WAVE"
+        setUint32(0x20746d66); // "fmt " chunk
+        setUint32(16);         // length = 16
+        setUint16(1);          // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(abuffer.sampleRate);
+        setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+        setUint16(numOfChan * 2);                      // block-align
+        setUint16(16);                                 // 16-bit
+        setUint32(0x61746164); // "data" chunk
+        setUint32(length - pos - 4);
+
+        for (i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
+
+        while (offset < len) {
+            for (i = 0; i < numOfChan; i++) {
+                sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+                view.setInt16(pos, sample, true);
+                pos += 2;
+            }
+            offset++;
+        }
+        return buffer;
+    }
+</script>
+</body>
+</html>
