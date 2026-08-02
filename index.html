@@ -13,6 +13,7 @@
             --accent-dim: #007a8a;
             --text: #ffffff;
             --text-dim: #828a9e;
+            --danger: #ff4757;
         }
 
         * {
@@ -129,6 +130,12 @@
             width: 100%;
             margin-bottom: 20px;
             border: 1px solid #1a202c;
+            word-break: break-all;
+        }
+
+        .status-bar.error {
+            color: var(--danger);
+            border-color: var(--danger);
         }
 
         .controls-grid {
@@ -216,7 +223,7 @@
     <div class="top-bar">
         <div class="file-btn-wrapper">
             <span class="btn-label">Load WAV / Video</span>
-            <input type="file" id="media-file" accept="audio/*,video/*,.wav,.mp4,.webm,.mov,.m4v">
+            <input type="file" id="media-file" accept="audio/*,video/*,.wav,.mp3,.mp4,.webm,.mov,.m4a">
         </div>
         <button id="btn-play" disabled>Play</button>
         <button id="btn-stop" disabled>Stop</button>
@@ -224,7 +231,7 @@
         <button id="btn-export" disabled>Export WAV</button>
     </div>
 
-    <div class="status-bar" id="status">Select a WAV or Video file (.mp4, .webm, .mov) to begin...</div>
+    <div class="status-bar" id="status">Select a WAV or Video file (.wav, .mp3, .mp4, .mov) to begin...</div>
 
     <div class="controls-grid">
         <div class="control-group">
@@ -271,13 +278,13 @@
 </div>
 
 <script>
-    // Audio Context State Variables
+    // Audio State
     let audioCtx = null;
     let audioBuffer = null;
     let scriptNode = null;
     let isPlaying = false;
 
-    // Grid Matrix Options Configuration
+    // Grid Rows
     const STEPS = 16;
     const ROWS = [
         { label: "1/2 Beat",    rate: 0.5, type: "rate",    color: "#00e5ff" },
@@ -291,15 +298,12 @@
         { label: "Bitcrush",     rate: 0,   type: "crush",   color: "#a855f7" }
     ];
 
-    // Grid Matrix Array [row][step] -> 0 or 1
     let gridMatrix = Array(ROWS.length).fill().map(() => Array(STEPS).fill(0));
 
-    // Clocks
     let currentStep = 0;
     let sampleRate = 44100;
     let samplePos = 0;
 
-    // UI Elements
     const canvas = document.getElementById('matrix-canvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
@@ -311,7 +315,6 @@
     const exportBtn = document.getElementById('btn-export');
     const statusDiv = document.getElementById('status');
 
-    // Live Config Map
     const config = {
         bpm: 120,
         gate: 0.8,
@@ -319,7 +322,6 @@
         volume: 0.8
     };
 
-    // Canvas Auto-Resizer
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
         drawGrid();
@@ -327,7 +329,6 @@
     window.addEventListener('resize', resizeCanvas);
     setTimeout(resizeCanvas, 100);
 
-    // Dynamic Parameter Bindings
     function setupParam(id, key, suffix = '', transform = v => v) {
         const el = document.getElementById(id);
         const valEl = document.getElementById('val-' + id.split('-')[1]);
@@ -342,7 +343,6 @@
     setupParam('param-chaos', 'chaos', '%', v => v / 100);
     setupParam('param-vol', 'volume', '%', v => v / 100);
 
-    // Matrix Mouse / Touch Event Mapping
     function getGridCoords(e) {
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -379,7 +379,6 @@
         drawGrid();
     });
 
-    // Draw Vector Matrix Grid & Playhead
     function drawGrid() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const labelWidth = 100;
@@ -393,11 +392,9 @@
         for (let r = 0; r < ROWS.length; r++) {
             const rowData = ROWS[r];
 
-            // Row Label
             ctx.fillStyle = rowData.color;
             ctx.fillText(rowData.label, 8, r * cellHeight + cellHeight / 2);
 
-            // Cells
             for (let c = 0; c < STEPS; c++) {
                 const x = labelWidth + (c * cellWidth);
                 const y = r * cellHeight;
@@ -412,7 +409,6 @@
             }
         }
 
-        // Active Playhead Highlight Bar
         if (isPlaying) {
             const px = labelWidth + (currentStep * cellWidth);
             ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
@@ -423,35 +419,63 @@
         }
     }
 
-    // Audio/Video Loader & Decoder
+    // --- BULLETPROOF SAFARI / IPADOS DECODER WRAPPER ---
+    function decodeAudioDataSafe(context, buffer) {
+        return new Promise((resolve, reject) => {
+            // Clone buffer to prevent Safari buffer-detachment bugs
+            const bufferCopy = buffer.slice(0);
+            
+            // Try traditional Callback interface (works on all iOS Safari builds)
+            const promiseOrResult = context.decodeAudioData(
+                bufferCopy,
+                decoded => resolve(decoded),
+                err => reject(err || new Error('Safari Audio Decoding Error'))
+            );
+
+            // Handle Promise syntax if returned
+            if (promiseOrResult && typeof promiseOrResult.then === 'function') {
+                promiseOrResult.then(resolve).catch(reject);
+            }
+        });
+    }
+
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        statusDiv.textContent = `Decoding media stream from "${file.name}"...`;
-
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
-        if (audioCtx.state === 'suspended') {
-            await audioCtx.resume();
-        }
-
-        sampleRate = audioCtx.sampleRate;
+        statusDiv.classList.remove('error');
+        statusDiv.textContent = `Reading file "${file.name}"...`;
 
         try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            sampleRate = audioCtx.sampleRate;
+
+            statusDiv.textContent = `Decoding media stream from "${file.name}"...`;
+
+            // Read as ArrayBuffer
             const arrayBuffer = await file.arrayBuffer();
-            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            statusDiv.textContent = `Loaded: ${file.name} (${audioBuffer.duration.toFixed(2)}s)`;
+
+            // Decode safely
+            audioBuffer = await decodeAudioDataSafe(audioCtx, arrayBuffer);
+
+            statusDiv.textContent = `Loaded: ${file.name} (${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.numberOfChannels} ch)`;
             playBtn.disabled = false;
             exportBtn.disabled = false;
+
         } catch (err) {
-            statusDiv.textContent = 'Error decoding audio from file. Please upload a valid WAV, Audio, or Video file.';
+            console.error('Audio Decoder Failed:', err);
+            statusDiv.classList.add('error');
+            statusDiv.textContent = `Decoding failed. iOS Safari cannot parse this codec. Try a standard 16-bit WAV or MP3 file.`;
         }
     });
 
-    // Real-Time Audio Processor
     function processAudio(e) {
         const outputL = e.outputBuffer.getChannelData(0);
         const outputR = e.outputBuffer.getChannelData(1);
@@ -528,7 +552,6 @@
         requestAnimationFrame(drawGrid);
     }
 
-    // Playback Handlers
     playBtn.addEventListener('click', async () => {
         if (!audioBuffer) return;
         if (audioCtx.state === 'suspended') await audioCtx.resume();
@@ -560,7 +583,6 @@
 
     stopBtn.addEventListener('click', stopAudio);
 
-    // Export Audio to WAV File
     exportBtn.addEventListener('click', async () => {
         if (!audioBuffer) return;
         statusDiv.textContent = 'Rendering audio export...';
@@ -624,12 +646,11 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'glitch-processor-export.wav';
+        a.download = 'glitch-export.wav';
         a.click();
         statusDiv.textContent = 'Render finished! Export downloaded.';
     });
 
-    // Helper: Export AudioBuffer to PCM 16-Bit WAV
     function bufferToWave(abuffer, len) {
         let numOfChan = abuffer.numberOfChannels,
             length = len * numOfChan * 2 + 44,
