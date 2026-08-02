@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAV Glitch & Stutter Processor</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --panel-bg: #1e1e24;
+            --accent: #00e5ff;
+            --accent-dim: #005b66;
+            --text: #ffffff;
+            --text-dim: #a0a0a5;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 2px solid var(--accent-dim);
+            padding-bottom: 10px;
+        }
+
+        .upload-section {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        input[type="file"] {
+            background: #2a2a32;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px dashed var(--accent);
+            color: var(--text-dim);
+            cursor: pointer;
+        }
+
+        button {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        button:hover:not(:disabled) {
+            background: #fff;
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        button:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+            background: #1a1a1f;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group span {
+            font-family: monospace;
+            color: var(--accent);
+            font-size: 0.9rem;
+            align-self: flex-end;
+            margin-top: -20px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #333;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        .canvas-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            background: #151518;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            border: 1px solid #2d2d35;
+        }
+
+        .grid-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+
+        .status-bar {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>WAV Glitch & Stutter Generator</h1>
+    
+    <div class="upload-section">
+        <input type="file" id="audio-file" accept=".wav,audio/wav">
+        <button id="btn-play" disabled>Play</button>
+        <button id="btn-stop" disabled>Stop</button>
+        <button id="btn-clear">Clear Grid</button>
+        <div class="status-bar" id="status">Upload a WAV file to begin...</div>
+    </div>
+
+    <div class="controls-grid">
+        <div class="control-group">
+            <label for="param-bpm">Tempo (BPM)</label>
+            <input type="range" id="param-bpm" min="60" max="180" value="120">
+            <span id="val-bpm">120</span>
+        </div>
+        <div class="control-group">
+            <label for="param-gate">Stutter Gate</label>
+            <input type="range" id="param-gate" min="10" max="100" value="80">
+            <span id="val-gate">80%</span>
+        </div>
+        <div class="control-group">
+            <label for="param-chaos">Random Chaos</label>
+            <input type="range" id="param-chaos" min="0" max="100" value="0">
+            <span id="val-chaos">0%</span>
+        </div>
+    </div>
+
+    <div class="grid-label">Interactive Stutter Grid (Click/Drag to paint triggers)</div>
+    <div class="canvas-container">
+        <canvas id="matrix-canvas" height="240"></canvas>
+    </div>
+</div>
+
+<script>
+    // Audio State Variables
+    let audioCtx = null;
+    let audioBuffer = null;
+    let scriptNode = null; // Standard fallback mechanism for clean cross-browser dynamic buffer frame access
+    let isPlaying = false;
+
+    // Grid Matrix System Configuration
+    const STEPS = 16;
+    const RATES =; // Subdivisions relative to a beat (quarter, eighth, sixteenth, thirty-second)
+    const RATE_LABELS = ["1/4 Step", "1/8 Glitch", "1/16 Buzz", "1/32 Particle"];
+    
+    // Matrix State Matrix Data Map [row][col] -> 0 or 1
+    let gridMatrix = Array(RATES.length).fill().map(() => Array(STEPS).fill(0));
+
+    // Global Interactive Sync Clocks
+    let currentStep = 0;
+    let sampleRate = 44100;
+    let globalPlayheadSamples = 0;
+
+    // Interface Variables
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+
+    // Elements
+    const fileInput = document.getElementById('audio-file');
+    const playBtn = document.getElementById('btn-play');
+    const stopBtn = document.getElementById('btn-stop');
+    const clearBtn = document.getElementById('btn-clear');
+    const statusDiv = document.getElementById('status');
+
+    // Live Config Map
+    const config = {
+        bpm: 120,
+        gate: 0.8,
+        chaos: 0.0
+    };
+
+    // Initialize Canvas Dimensions dynamically
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        drawGrid();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 100);
+
+    // Dynamic UI Updates
+    function updateParam(id, key, suffix = '') {
+        const el = document.getElementById(id);
+        const valEl = document.getElementById('val-' + id.split('-')[1]);
+        el.addEventListener('input', (e) => {
+            let val = parseFloat(e.target.value);
+            valEl.textContent = val + suffix;
+            if (key === 'gate' || key === 'chaos') val /= 100;
+            config[key] = val;
+        });
+    }
+    updateParam('param-bpm', 'bpm');
+    updateParam('param-gate', 'gate', '%');
+    updateParam('param-chaos', 'chaos', '%');
+
+    // Matrix Grid Painter logic
+    function getGridCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const cellWidth = canvas.width / (STEPS + 1); // Extra column for text tags
+        const cellHeight = canvas.height / RATES.length;
+        
+        const col = Math.floor((x - cellWidth) / cellWidth);
+        const row = Math.floor(y / cellHeight);
+        
+        return { row, col };
+    }
+
+    function handleDraw(e) {
+        if (!isDrawing) return;
+        const { row, col } = getGridCoords(e);
+        if (col >= 0 && col < STEPS && row >= 0 && row < RATES.length) {
+            gridMatrix[row][col] = e.shiftKey ? 0 : 1; // Hold Shift key to erase structural nodes cleanly
+            drawGrid();
+        }
+    }
+
+    canvas.addEventListener('mousedown', (e) => { isDrawing = true; handleDraw(e); });
+    canvas.addEventListener('mousemove', handleDraw);
+    window.addEventListener('mouseup', () => isDrawing = false);
+    clearBtn.addEventListener('click', () => {
+        gridMatrix = Array(RATES.length).fill().map(() => Array(STEPS).fill(0));
+        drawGrid();
+    });
+
+    // Draw Dynamic Interface Vector Grid
+    function drawGrid() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cellWidth = canvas.width / (STEPS + 1);
+        const cellHeight = canvas.height / RATES.length;
+
+        // Draw Row Titles / Indicators
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+
+        for (let r = 0; r < RATES.length; r++) {
+            ctx.fillStyle = '#a0a0a5';
+            ctx.fillText(RATE_LABELS[r], 8, r * cellHeight + cellHeight / 2);
+            
+            // Grid Blocks Loop
+            for (let c = 0; c < STEPS; c++) {
+                const x = cellWidth + (c * cellWidth);
+                const y = r * cellHeight;
+
+                // Alternate structural backgrounds cleanly for scannability
+                ctx.fillStyle = (c % 4 === 0) ? '#1c1c22' : '#17171c';
+                ctx.fillRect(x + 1, y + 1, cellWidth - 2, cellHeight - 2);
+
+                if (gridMatrix[r][c] === 1) {
+                    ctx.fillStyle = 'rgba(0, 229, 255, 0.3)';
