@@ -1,696 +1,348 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Glitch & Stutter Processor</title>
-    <style>
-        :root {
-            --bg-color: #0b0d12;
-            --panel-bg: #131722;
-            --panel-border: #1e2638;
-            --accent: #00e5ff;
-            --accent-dim: #007a8a;
-            --text: #ffffff;
-            --text-dim: #828a9e;
-            --danger: #ff4757;
-        }
-
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            touch-action: manipulation;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow-x: hidden;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 920px;
-            width: 100%;
-            background: var(--panel-bg);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
-            border: 1px solid var(--panel-border);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--accent-dim);
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 1.4rem;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .subtitle {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .top-bar {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-
-        .file-btn-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        input[type=file], input[type=range], button {
-            font-size: 16px !important; 
-        }
-
-        .file-btn-wrapper input[type=file] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        button, .btn-label {
-            background: #1c2333;
-            color: var(--accent);
-            border: 1px solid var(--accent-dim);
-            font-weight: 700;
-            padding: 12px 18px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-transform: uppercase;
-            font-size: 0.8rem !important;
-            letter-spacing: 0.5px;
-            transition: all 0.15s ease;
-            display: inline-block;
-        }
-
-        button:hover:not(:disabled), .btn-label:hover {
-            background: var(--accent);
-            color: #000;
-            box-shadow: 0 0 12px var(--accent-dim);
-        }
-
-        button:disabled {
-            border-color: #2a3040;
-            color: #4a5266;
-            background: #10141e;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        .status-bar {
-            font-family: monospace;
-            font-size: 0.85rem;
-            color: var(--text-dim);
-            background: #090c12;
-            padding: 12px 16px;
-            border-radius: 6px;
-            width: 100%;
-            margin-bottom: 20px;
-            border: 1px solid #1a202c;
-            word-break: break-all;
-        }
-
-        .status-bar.error {
-            color: var(--danger);
-            border-color: var(--danger);
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
-            background: #0d1017;
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid #1a202c;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .label-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .label-row span.val {
-            color: var(--accent);
-            font-family: monospace;
-            font-weight: bold;
-        }
-
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%;
-            background: #1c2333;
-            height: 8px;
-            border-radius: 4px;
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-        }
-
-        .grid-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .canvas-container {
-            position: relative;
-        }
-
-        canvas {
-            background: #080a0f;
-            border-radius: 8px;
-            display: block;
-            width: 100%;
-            border: 1px solid #1e2638;
-            touch-action: none;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Granular Soundscape Studio — iPad Landscape</title>
+<meta name="description" content="Micro-granular soundscape generator with live delay, procedural reverb, XY pad and native WAV session recording." />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body, button, a, input, select, textarea {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body { margin:0; padding:0; background:#07080c; overscroll-behavior:none; }
+  .app { height: 100dvh; }
+  input[type=range] { -webkit-appearance:none; appearance:none; height:34px; background:transparent; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:99px; background:#1e2431; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:30px; height:30px; margin-top:-11px; border-radius:50%;
+    background:#e7fb62; border:3px solid #07080c; box-shadow:0 0 16px rgba(231,251,98,.55);
+  }
+  .panel { background:linear-gradient(180deg,#11141c,#0b0d13); border:1px solid #222839; }
+  .rec-dot { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+</style>
 </head>
-<body>
+<body class="text-slate-100 antialiased">
+<main class="app w-full flex flex-col p-3 gap-3 select-none" style="padding-top:max(0.75rem,env(safe-area-inset-top));padding-bottom:max(0.75rem,env(safe-area-inset-bottom))">
 
-<div class="container" id="app-wrapper">
-    <div class="header">
-        <h1>Glitch & Stutter Processor</h1>
-        <div class="subtitle">Audio & Video</div>
+  <header class="panel rounded-2xl px-4 py-2 flex items-center gap-4 shrink-0">
+    <h1 class="text-lg font-black tracking-tight text-[#e7fb62]">GRANULAR<span class="text-slate-100">·SOUNDSCAPE</span></h1>
+    <span id="status" class="text-xs font-mono text-slate-400">tap ENGAGE to start audio</span>
+    <div class="ml-auto flex items-center gap-2">
+      <label for="audio-upload" class="text-xs font-bold px-3 py-2 rounded-xl bg-[#1b2130] border border-[#2b3346] active:bg-[#232b3d]">LOAD SOURCE</label>
+      <input class="hidden" type="file" id="audio-upload" accept=".mid,.midi,audio/wav,audio/x-wav,audio/mpeg,video/mp4,video/quicktime,video/x-m4v,video/*" />
+      <button id="engage" class="text-xs font-black px-4 py-2 rounded-xl bg-[#e7fb62] text-black active:scale-95">ENGAGE</button>
     </div>
+  </header>
 
-    <div class="top-bar">
-        <div class="file-btn-wrapper">
-            <span class="btn-label" id="lbl-file">Load WAV / Video</span>
-            <input type="file" id="media-file" accept="audio/*,video/*,.wav,.mp3,.mp4,.webm,.mov,.m4a">
-        </div>
-        <button id="btn-play" disabled>Play</button>
-        <button id="btn-stop" disabled>Stop</button>
-        <button id="btn-clear">Clear Grid</button>
-        <button id="btn-export" disabled>Export WAV</button>
-    </div>
+  <section class="flex-1 grid grid-cols-12 grid-rows-2 gap-3 min-h-0">
 
-    <div class="status-bar" id="status">Select a WAV or Video file (.wav, .mp3, .mp4, .mov) to begin...</div>
+    <article class="panel rounded-2xl col-span-5 row-span-2 p-3 flex flex-col min-h-0">
+      <h2 class="text-[11px] font-bold tracking-widest text-slate-400 mb-2">XY CLOUD — DRAG TO SCATTER GRAINS</h2>
+      <div id="xy" class="relative flex-1 rounded-xl bg-[#0a0c12] border border-[#222839] overflow-hidden touch-none">
+        <canvas id="cloud" class="absolute inset-0 w-full h-full"></canvas>
+        <div id="puck" class="absolute w-14 h-14 -ml-7 -mt-7 rounded-full bg-[#e7fb62]/20 border-2 border-[#e7fb62] pointer-events-none" style="left:50%;top:50%"></div>
+        <div class="absolute bottom-2 left-3 text-[10px] font-mono text-slate-500">X → POSITION &nbsp; Y → PITCH</div>
+      </div>
+    </article>
 
-    <div class="controls-grid">
-        <div class="control-group">
-            <div class="label-row">
-                <label for="param-bpm">Tempo (BPM)</label>
-                <span class="val" id="val-bpm">120</span>
-            </div>
-            <input type="range" id="param-bpm" min="60" max="180" value="120">
-        </div>
+    <article class="panel rounded-2xl col-span-4 p-3 flex flex-col gap-1 min-h-0">
+      <h2 class="text-[11px] font-bold tracking-widest text-slate-400">GRAIN ENGINE</h2>
+      <div data-ctl><label class="text-xs font-mono flex justify-between"><span>DENSITY</span><b id="v-density">24 g/s</b></label>
+        <input id="density" type="range" min="2" max="80" step="1" value="24" class="w-full" /></div>
+      <div data-ctl><label class="text-xs font-mono flex justify-between"><span>GRAIN SIZE</span><b id="v-size">120 ms</b></label>
+        <input id="size" type="range" min="15" max="600" step="5" value="120" class="w-full" /></div>
+      <div data-ctl><label class="text-xs font-mono flex justify-between"><span>SPRAY</span><b id="v-spray">0.15</b></label>
+        <input id="spray" type="range" min="0" max="1" step="0.01" value="0.15" class="w-full" /></div>
+      <div data-ctl><label class="text-xs font-mono flex justify-between"><span>DETUNE</span><b id="v-detune">200 c</b></label>
+        <input id="detune" type="range" min="0" max="1200" step="10" value="200" class="w-full" /></div>
+    </article>
 
-        <div class="control-group">
-            <div class="label-row">
-                <label for="param-gate">Stutter Gate</label>
-                <span class="val" id="val-gate">80%</span>
-            </div>
-            <input type="range" id="param-gate" min="10" max="100" value="80">
-        </div>
+    <article class="panel rounded-2xl col-span-3 p-3 flex flex-col gap-1 min-h-0">
+      <h2 class="text-[11px] font-bold tracking-widest text-slate-400">SPACE RACK</h2>
+      <div data-ctl><label class="text-xs font-mono flex justify-between"><span>DELAY</span><b id="v-dtime">380 ms</b></label>
+        <input id="dtime" type="range" min="20" max="1200" step="10" value="380" class="w-full" /></div>
+      <div data-ctl><label class="text-xs font-mono flex justify-between"><span>FEEDBACK</span><b id="v-fb">0.45</b></label>
+        <input id="fb" type="range" min="0" max="0.92" step="0.01" value="0.45" class="w-full" /></div>
+      <div data-ctl><label class="text-xs font-mono flex justify-between"><span>REVERB</span><b id="v-wet">0.55</b></label>
+        <input id="wet" type="range" min="0" max="1" step="0.01" value="0.55" class="w-full" /></div>
+      <div data-ctl><label class="text-xs font-mono flex justify-between"><span>MASTER</span><b id="v-master">0.80</b></label>
+        <input id="master" type="range" min="0" max="1" step="0.01" value="0.8" class="w-full" /></div>
+    </article>
 
-        <div class="control-group">
-            <div class="label-row">
-                <label for="param-chaos">Random Chaos</label>
-                <span class="val" id="val-chaos">0%</span>
-            </div>
-            <input type="range" id="param-chaos" min="0" max="100" value="0">
-        </div>
+    <article class="panel rounded-2xl col-span-4 p-3 flex flex-col min-h-0">
+      <h2 class="text-[11px] font-bold tracking-widest text-slate-400 mb-2">SPECTRUM</h2>
+      <canvas id="scope" class="flex-1 w-full rounded-xl bg-[#0a0c12] border border-[#222839]"></canvas>
+    </article>
 
-        <div class="control-group">
-            <div class="label-row">
-                <label for="param-vol">Master Volume</label>
-                <span class="val" id="val-vol">80%</span>
-            </div>
-            <input type="range" id="param-vol" min="0" max="100" value="80">
-        </div>
-    </div>
+    <article class="panel rounded-2xl col-span-3 p-3 flex flex-col gap-2 min-h-0">
+      <h2 class="text-[11px] font-bold tracking-widest text-slate-400">SESSION RECORDER</h2>
+      <button id="rec" class="flex-1 rounded-xl bg-[#ff3b5c] text-black font-black text-sm active:scale-95">START RECORDING</button>
+      <button id="stop" disabled class="flex-1 rounded-xl bg-[#1b2130] border border-[#2b3346] font-black text-sm disabled:opacity-40 active:scale-95">STOP &amp; SAVE</button>
+      <a id="dl" class="hidden text-center text-xs font-bold px-3 py-3 rounded-xl bg-[#e7fb62] text-black" download="soundscape-session.wav">DOWNLOAD TAKE</a>
+      <p id="rtime" class="text-[11px] font-mono text-slate-500 text-center">00:00</p>
+    </article>
 
-    <div class="grid-header">
-        <span>Multi-Effect Stutter Matrix (Click / Drag to paint triggers)</span>
-        <span>Hold Shift to Erase</span>
-    </div>
-
-    <div class="canvas-container">
-        <canvas id="matrix-canvas" height="360"></canvas>
-    </div>
-</div>
+  </section>
+</main>
 
 <script>
-    let audioCtx = null;
-    let audioBuffer = null;
-    let scriptNode = null;
-    let isPlaying = false;
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const status = $("status");
 
-    const STEPS = 16;
-    const ROWS = [
-        { label: "1/2 Beat",    rate: 0.5, type: "rate",    color: "#00e5ff" },
-        { label: "1/4 Step",    rate: 1,   type: "rate",    color: "#00e5ff" },
-        { label: "1/8 Glitch",  rate: 2,   type: "rate",    color: "#00e5ff" },
-        { label: "1/16 Buzz",    rate: 4,   type: "rate",    color: "#00e5ff" },
-        { label: "1/32 Grain",   rate: 8,   type: "rate",    color: "#00e5ff" },
-        { label: "1/64 Micro",   rate: 16,  type: "rate",    color: "#00e5ff" },
-        { label: "Reverse FX",   rate: 0,   type: "reverse", color: "#ff0055" },
-        { label: "Pitch +7",     rate: 0,   type: "pitch",   color: "#ffaa00" },
-        { label: "Bitcrush",     rate: 0,   type: "crush",   color: "#a855f7" }
-    ];
+  const P = { density:24, size:120, spray:0.15, detune:200, pos:0.5, pitch:1, dtime:0.38, fb:0.45, wet:0.55, master:0.8 };
+  let ctx=null, nodes=null, buffer=null, running=false, timer=null;
 
-    let gridMatrix = Array(ROWS.length).fill().map(() => Array(STEPS).fill(0));
-
-    let currentStep = 0;
-    let sampleRate = 44100;
-    let samplePos = 0;
-
-    const canvas = document.getElementById('matrix-canvas');
-    const ctx = canvas.getContext('2d');
-    let isDrawing = false;
-
-    const fileInput = document.getElementById('media-file');
-    const playBtn = document.getElementById('btn-play');
-    const stopBtn = document.getElementById('btn-stop');
-    const clearBtn = document.getElementById('btn-clear');
-    const exportBtn = document.getElementById('btn-export');
-    const statusDiv = document.getElementById('status');
-    const appWrapper = document.getElementById('app-wrapper');
-
-    const config = {
-        bpm: 120,
-        gate: 0.8,
-        chaos: 0.0,
-        volume: 0.8
-    };
-
-    // Unlock Web Audio Context on early user gesture
-    async function ensureAudioContextUnlocked() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            await audioCtx.resume();
-        }
+  /* ---------- procedural impulse response ---------- */
+  function makeIR(ac, seconds=3.6, decay=2.6){
+    const len = Math.floor(ac.sampleRate*seconds);
+    const ir = ac.createBuffer(2, len, ac.sampleRate);
+    for(let c=0;c<2;c++){
+      const d = ir.getChannelData(c);
+      for(let i=0;i<len;i++){
+        const t = i/len;
+        d[i] = (Math.random()*2-1) * Math.pow(1-t, decay) * (1 - t*0.15);
+      }
     }
+    return ir;
+  }
 
-    appWrapper.addEventListener('pointerdown', ensureAudioContextUnlocked, { once: true });
-    fileInput.addEventListener('pointerdown', ensureAudioContextUnlocked);
-
-    function resizeCanvas() {
-        canvas.width = canvas.parentElement.clientWidth;
-        drawGrid();
+  /* ---------- tone fallback source ---------- */
+  function makeDefaultBuffer(ac){
+    const len = Math.floor(ac.sampleRate*4), b = ac.createBuffer(2,len,ac.sampleRate);
+    for(let c=0;c<2;c++){
+      const d=b.getChannelData(c);
+      for(let i=0;i<len;i++){
+        const t=i/ac.sampleRate;
+        d[i] = (Math.sin(2*Math.PI*110*t)*0.35 + Math.sin(2*Math.PI*164.8*t)*0.25
+             + Math.sin(2*Math.PI*220*t)*0.2 + (Math.random()*2-1)*0.05)
+             * (0.6+0.4*Math.sin(2*Math.PI*0.25*t + c));
+      }
     }
-    window.addEventListener('resize', resizeCanvas);
-    setTimeout(resizeCanvas, 100);
+    return b;
+  }
 
-    function setupParam(id, key, suffix = '', transform = v => v) {
-        const el = document.getElementById(id);
-        const valEl = document.getElementById('val-' + id.split('-')[1]);
-        el.addEventListener('input', (e) => {
-            let val = parseFloat(e.target.value);
-            valEl.textContent = val + suffix;
-            config[key] = transform(val);
-        });
+  /* ---------- audio graph ---------- */
+  function initAudio(){
+    if(ctx) return ctx.resume();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC({ latencyHint:"interactive" });
+
+    const grainBus = ctx.createGain();      grainBus.gain.value = 0.9;
+    const delay    = ctx.createDelay(2.0);  delay.delayTime.value = P.dtime;
+    const fb       = ctx.createGain();      fb.gain.value = P.fb;
+    const damp     = ctx.createBiquadFilter(); damp.type="lowpass"; damp.frequency.value=4200;
+    const conv     = ctx.createConvolver(); conv.buffer = makeIR(ctx);
+    const wet      = ctx.createGain();      wet.gain.value = P.wet;
+    const dry      = ctx.createGain();      dry.gain.value = 1;
+    const master   = ctx.createGain();      master.gain.value = P.master;
+    const analyser = ctx.createAnalyser();  analyser.fftSize = 1024;
+    const streamDest = ctx.createMediaStreamDestination();
+
+    grainBus.connect(delay); grainBus.connect(dry);
+    delay.connect(damp); damp.connect(fb); fb.connect(delay);
+    delay.connect(dry); delay.connect(conv);
+    grainBus.connect(conv);
+    conv.connect(wet);
+    dry.connect(master); wet.connect(master);
+    master.connect(analyser); analyser.connect(ctx.destination); master.connect(streamDest);
+
+    nodes = { grainBus, delay, fb, conv, wet, master, analyser, streamDest };
+    if(!buffer) buffer = makeDefaultBuffer(ctx);
+    drawScope();
+    return ctx.resume();
+  }
+
+  /* ---------- granular scheduler ---------- */
+  function spawnGrain(){
+    if(!ctx || !buffer) return;
+    const now = ctx.currentTime;
+    const dur = P.size/1000;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = P.pitch;
+    src.detune && (src.detune.value = (Math.random()*2-1)*P.detune);
+
+    const g = ctx.createGain();
+    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    if(pan) pan.pan.value = (Math.random()*2-1)*0.85;
+
+    src.connect(g);
+    (pan ? (g.connect(pan), pan) : g).connect(nodes.grainBus);
+
+    const peak = 0.9/Math.sqrt(Math.max(4,P.density));
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(peak, now + dur*0.35);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    const span = Math.max(0.001, buffer.duration - dur);
+    let off = P.pos*span + (Math.random()*2-1)*P.spray*span;
+    off = Math.min(span, Math.max(0, off));
+
+    try { src.start(now, off, dur*1.05); } catch(e){ return; }
+    src.stop(now + dur*1.1);
+    src.onended = () => { try{ src.disconnect(); g.disconnect(); pan && pan.disconnect(); }catch(e){} };
+    pushBlob();
+  }
+
+  function schedule(){
+    clearInterval(timer);
+    timer = setInterval(() => { if(running) spawnGrain(); }, Math.max(12, 1000/P.density));
+  }
+
+  /* ---------- XY pad ---------- */
+  const xy = $("xy"), puck = $("puck"), cloud = $("cloud"), cctx = cloud.getContext("2d");
+  const blobs = [];
+  function pushBlob(){ blobs.push({ x:P.pos, y:1-Math.min(1,Math.max(0,(P.pitch-0.25)/1.75)), r:2+Math.random()*14, a:1 }); if(blobs.length>160) blobs.shift(); }
+
+  function fromEvent(e){
+    const t = e.touches ? e.touches[0] : e;
+    const r = xy.getBoundingClientRect();
+    const nx = Math.min(1, Math.max(0, (t.clientX-r.left)/r.width));
+    const ny = Math.min(1, Math.max(0, (t.clientY-r.top)/r.height));
+    P.pos = nx; P.pitch = 0.25 + (1-ny)*1.75;
+    puck.style.left = (nx*100)+"%"; puck.style.top = (ny*100)+"%";
+  }
+  const onDown = (e) => { e.preventDefault(); initAudio().then(() => { running = true; schedule(); setStatus(); }); fromEvent(e); };
+  const onMove = (e) => { if(running){ e.preventDefault(); fromEvent(e); } };
+  xy.addEventListener("touchstart", onDown, {passive:false});
+  xy.addEventListener("touchmove", onMove, {passive:false});
+  xy.addEventListener("mousedown", onDown);
+  window.addEventListener("mousemove", (e)=>{ if(e.buttons===1) onMove(e); });
+
+  /* ---------- controls ---------- */
+  const bind = (id, fmt, apply) => {
+    const el = $(id), out = $("v-"+id);
+    const upd = () => { const v = parseFloat(el.value); out.textContent = fmt(v); apply(v); };
+    el.addEventListener("input", upd); upd();
+  };
+  bind("density", v=>v+" g/s", v=>{ P.density=v; if(running) schedule(); });
+  bind("size",    v=>v+" ms",  v=>{ P.size=v; });
+  bind("spray",   v=>v.toFixed(2), v=>{ P.spray=v; });
+  bind("detune",  v=>v+" c",   v=>{ P.detune=v; });
+  bind("dtime",   v=>v+" ms",  v=>{ P.dtime=v/1000; if(nodes) nodes.delay.delayTime.setTargetAtTime(P.dtime, ctx.currentTime, 0.05); });
+  bind("fb",      v=>v.toFixed(2), v=>{ P.fb=v; if(nodes) nodes.fb.gain.setTargetAtTime(v, ctx.currentTime, 0.05); });
+  bind("wet",     v=>v.toFixed(2), v=>{ P.wet=v; if(nodes) nodes.wet.gain.setTargetAtTime(v, ctx.currentTime, 0.05); });
+  bind("master",  v=>v.toFixed(2), v=>{ P.master=v; if(nodes) nodes.master.gain.setTargetAtTime(v, ctx.currentTime, 0.05); });
+
+  function setStatus(t){ status.textContent = t || (running ? "engine running — drag the cloud" : "engine idle"); }
+
+  $("engage").addEventListener("click", () => {
+    initAudio().then(() => { running = !running; if(running) schedule(); else clearInterval(timer);
+      $("engage").textContent = running ? "PAUSE" : "ENGAGE"; setStatus(); });
+  });
+
+  /* ---------- source loading (audio/video/MIDI-safe input) ---------- */
+  $("audio-upload").addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0]; if(!f) return;
+    await initAudio();
+    setStatus("decoding "+f.name+"…");
+    try {
+      const data = await f.arrayBuffer();
+      buffer = await new Promise((res, rej) => {
+        const p = ctx.decodeAudioData(data.slice(0), res, rej);
+        if(p && p.then) p.then(res, rej);
+      });
+      setStatus(f.name+" loaded ("+buffer.duration.toFixed(1)+"s)");
+    } catch(err){
+      buffer = makeDefaultBuffer(ctx);
+      setStatus("could not decode that file — using internal tone source");
     }
-    setupParam('param-bpm', 'bpm');
-    setupParam('param-gate', 'gate', '%', v => v / 100);
-    setupParam('param-chaos', 'chaos', '%', v => v / 100);
-    setupParam('param-vol', 'volume', '%', v => v / 100);
+  });
 
-    function getGridCoords(e) {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  /* ---------- recorder ---------- */
+  let recorder=null, chunks=[], t0=0, tick=null;
+  const fmtT = (s)=> String(Math.floor(s/60)).padStart(2,"0")+":"+String(Math.floor(s%60)).padStart(2,"0");
 
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
+  $("rec").addEventListener("click", async () => {
+    await initAudio();
+    chunks = [];
+    const mime = ["audio/webm;codecs=opus","audio/mp4","audio/webm",""].find(m => !m || (window.MediaRecorder && MediaRecorder.isTypeSupported(m)));
+    recorder = new MediaRecorder(nodes.streamDest.stream, mime ? { mimeType:mime } : undefined);
+    recorder.ondataavailable = (ev) => { if(ev.data.size) chunks.push(ev.data); };
+    recorder.onstop = exportTake;
+    recorder.start(250);
+    t0 = performance.now(); clearInterval(tick);
+    tick = setInterval(()=> $("rtime").textContent = fmtT((performance.now()-t0)/1000), 250);
+    $("rec").disabled = true; $("rec").innerHTML = '<span class="rec-dot">● RECORDING</span>';
+    $("stop").disabled = false; $("dl").classList.add("hidden");
+  });
 
-        const labelWidth = 100;
-        const cellWidth = (canvas.width - labelWidth) / STEPS;
-        const cellHeight = canvas.height / ROWS.length;
+  $("stop").addEventListener("click", () => {
+    if(recorder && recorder.state !== "inactive") recorder.stop();
+    clearInterval(tick);
+    $("stop").disabled = true; $("rec").disabled = false; $("rec").textContent = "START RECORDING";
+  });
 
-        const col = Math.floor((x - labelWidth) / cellWidth);
-        const row = Math.floor(y / cellHeight);
+  async function exportTake(){
+    setStatus("rendering WAV…");
+    const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : "audio/webm" });
+    let out = blob, name = "soundscape-session.wav";
+    try {
+      const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
+      out = encodeWAV(decoded);
+    } catch(e){ name = "soundscape-session." + ((blob.type.indexOf("mp4")>-1) ? "m4a" : "webm"); }
+    const a = $("dl");
+    a.href = URL.createObjectURL(out); a.download = name;
+    a.classList.remove("hidden"); setStatus("take ready — tap DOWNLOAD TAKE");
+  }
 
-        return { row, col };
+  function encodeWAV(ab){
+    const ch = Math.min(2, ab.numberOfChannels), sr = ab.sampleRate, n = ab.length;
+    const data = new DataView(new ArrayBuffer(44 + n*ch*2));
+    const str = (o,s)=>{ for(let i=0;i<s.length;i++) data.setUint8(o+i, s.charCodeAt(i)); };
+    str(0,"RIFF"); data.setUint32(4, 36+n*ch*2, true); str(8,"WAVEfmt ");
+    data.setUint32(16,16,true); data.setUint16(20,1,true); data.setUint16(22,ch,true);
+    data.setUint32(24,sr,true); data.setUint32(28,sr*ch*2,true); data.setUint16(32,ch*2,true);
+    data.setUint16(34,16,true); str(36,"data"); data.setUint32(40, n*ch*2, true);
+    const chans = []; for(let c=0;c<ch;c++) chans.push(ab.getChannelData(c));
+    let off = 44;
+    for(let i=0;i<n;i++) for(let c=0;c<ch;c++){
+      const s = Math.max(-1, Math.min(1, chans[c][i]));
+      data.setInt16(off, s<0 ? s*0x8000 : s*0x7FFF, true); off += 2;
     }
+    return new Blob([data.buffer], { type:"audio/wav" });
+  }
 
-    function handleDraw(e) {
-        if (!isDrawing) return;
-        const { row, col } = getGridCoords(e);
-        if (col >= 0 && col < STEPS && row >= 0 && row < ROWS.length) {
-            gridMatrix[row][col] = e.shiftKey ? 0 : 1;
-            drawGrid();
-        }
-    }
+  /* ---------- visuals ---------- */
+  const scope = $("scope"), sctx = scope.getContext("2d");
+  function fit(c){ const r=c.getBoundingClientRect(), d=window.devicePixelRatio||1; c.width=r.width*d; c.height=r.height*d; c.getContext("2d").setTransform(d,0,0,d,0,0); }
+  const refit = () => { fit(scope); fit(cloud); };
+  window.addEventListener("resize", refit); window.addEventListener("orientationchange", ()=>setTimeout(refit,250)); refit();
 
-    canvas.addEventListener('pointerdown', (e) => { isDrawing = true; handleDraw(e); });
-    canvas.addEventListener('pointermove', handleDraw);
-    window.addEventListener('pointerup', () => isDrawing = false);
-
-    clearBtn.addEventListener('click', () => {
-        gridMatrix = Array(ROWS.length).fill().map(() => Array(STEPS).fill(0));
-        drawGrid();
-    });
-
-    function drawGrid() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const labelWidth = 100;
-        const cellWidth = (canvas.width - labelWidth) / STEPS;
-        const cellHeight = canvas.height / ROWS.length;
-
-        ctx.font = '11px monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-
-        for (let r = 0; r < ROWS.length; r++) {
-            const rowData = ROWS[r];
-
-            ctx.fillStyle = rowData.color;
-            ctx.fillText(rowData.label, 8, r * cellHeight + cellHeight / 2);
-
-            for (let c = 0; c < STEPS; c++) {
-                const x = labelWidth + (c * cellWidth);
-                const y = r * cellHeight;
-
-                ctx.fillStyle = (c % 4 === 0) ? '#121622' : '#0b0e16';
-                ctx.fillRect(x + 1, y + 1, cellWidth - 2, cellHeight - 2);
-
-                if (gridMatrix[r][c] === 1) {
-                    ctx.fillStyle = rowData.color;
-                    ctx.fillRect(x + 3, y + 3, cellWidth - 6, cellHeight - 6);
-                }
-            }
-        }
-
-        if (isPlaying) {
-            const px = labelWidth + (currentStep * cellWidth);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.fillRect(px, 0, cellWidth, canvas.height);
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(px, 0, cellWidth, canvas.height);
-        }
-    }
-
-    // --- NON-BLOCKING FAST MEDIA DECODER ---
-    fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        statusDiv.classList.remove('error');
-        statusDiv.textContent = `Reading media file "${file.name}"...`;
-
-        try {
-            await ensureAudioContextUnlocked();
-            sampleRate = audioCtx.sampleRate;
-
-            // Direct Memory Transfer
-            const arrayBuffer = await file.arrayBuffer();
-            
-            statusDiv.textContent = `Decoding audio stream from "${file.name}"...`;
-
-            // Non-blocking Promise wrapper with timeout safety
-            const decodedData = await Promise.race([
-                new Promise((resolve, reject) => {
-                    audioCtx.decodeAudioData(
-                        arrayBuffer.slice(0),
-                        decoded => resolve(decoded),
-                        err => reject(err || new Error('Format decoding failed.'))
-                    );
-                }),
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Audio decoding timed out.')), 30000)
-                )
-            ]);
-
-            audioBuffer = decodedData;
-            statusDiv.textContent = `Ready: ${file.name} (${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.numberOfChannels} ch)`;
-            playBtn.disabled = false;
-            exportBtn.disabled = false;
-
-        } catch (err) {
-            console.error(err);
-            statusDiv.classList.add('error');
-            statusDiv.textContent = `Error: Unable to extract audio from file. Make sure the file contains a valid audio track.`;
-        }
-    });
-
-    function processAudio(e) {
-        const outputL = e.outputBuffer.getChannelData(0);
-        const outputR = e.outputBuffer.getChannelData(1);
-        const inputL = audioBuffer.getChannelData(0);
-        const inputR = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : inputL;
-
-        const bufferLen = outputL.length;
-        const totalSamples = audioBuffer.length;
-        const samplesPerStep = Math.floor((60 / config.bpm / 4) * sampleRate);
-
-        for (let i = 0; i < bufferLen; i++) {
-            currentStep = Math.floor((samplePos / samplesPerStep) % STEPS);
-
-            let activeRate = 0;
-            let isReverse = gridMatrix[6][currentStep] === 1;
-            let isPitchUp = gridMatrix[7][currentStep] === 1;
-            let isCrushed = gridMatrix[8][currentStep] === 1;
-
-            for (let r = 0; r <= 5; r++) {
-                if (gridMatrix[r][currentStep] === 1) {
-                    activeRate = ROWS[r].rate;
-                }
-            }
-
-            if (config.chaos > 0 && Math.random() < (config.chaos * 0.001)) {
-                activeRate = ROWS[Math.floor(Math.random() * 6)].rate;
-            }
-
-            let readPos = samplePos;
-            const pitchFactor = isPitchUp ? 1.498 : 1.0;
-
-            if (activeRate > 0) {
-                const sliceLength = Math.floor(samplesPerStep / activeRate);
-                const stepStartPos = samplePos - (samplePos % samplesPerStep);
-                let sliceOffset = (samplePos % sliceLength);
-
-                if (isReverse) {
-                    sliceOffset = sliceLength - sliceOffset - 1;
-                }
-
-                const gateLimit = sliceLength * config.gate;
-                const gain = (sliceOffset < gateLimit) ? config.volume : 0;
-
-                readPos = Math.floor(stepStartPos + (sliceOffset * pitchFactor));
-
-                let rawL = (inputL[readPos % totalSamples] || 0) * gain;
-                let rawR = (inputR[readPos % totalSamples] || 0) * gain;
-
-                if (isCrushed) {
-                    const stepVal = Math.pow(0.5, 4);
-                    rawL = Math.floor(rawL / stepVal) * stepVal;
-                    rawR = Math.floor(rawR / stepVal) * stepVal;
-                }
-
-                outputL[i] = rawL;
-                outputR[i] = rawR;
-            } else {
-                let rawL = (inputL[Math.floor(samplePos) % totalSamples] || 0) * config.volume;
-                let rawR = (inputR[Math.floor(samplePos) % totalSamples] || 0) * config.volume;
-
-                if (isCrushed) {
-                    const stepVal = Math.pow(0.5, 4);
-                    rawL = Math.floor(rawL / stepVal) * stepVal;
-                    rawR = Math.floor(rawR / stepVal) * stepVal;
-                }
-
-                outputL[i] = rawL;
-                outputR[i] = rawR;
-            }
-
-            samplePos = (samplePos + 1) % totalSamples;
-        }
-
-        requestAnimationFrame(drawGrid);
-    }
-
-    playBtn.addEventListener('click', async () => {
-        if (!audioBuffer) return;
-        await ensureAudioContextUnlocked();
-
-        if (isPlaying) stopAudio();
-
-        samplePos = 0;
-        scriptNode = audioCtx.createScriptProcessor(2048, 0, 2);
-        scriptNode.onaudioprocess = processAudio;
-        scriptNode.connect(audioCtx.destination);
-
-        isPlaying = true;
-        playBtn.disabled = true;
-        stopBtn.disabled = false;
-        statusDiv.textContent = 'Playback engine active...';
-    });
-
-    function stopAudio() {
-        if (scriptNode) {
-            scriptNode.disconnect();
-            scriptNode = null;
-        }
-        isPlaying = false;
-        playBtn.disabled = false;
-        stopBtn.disabled = true;
-        statusDiv.textContent = 'Playback stopped.';
-        drawGrid();
-    }
-
-    stopBtn.addEventListener('click', stopAudio);
-
-    exportBtn.addEventListener('click', async () => {
-        if (!audioBuffer) return;
-        statusDiv.textContent = 'Rendering audio export...';
-
-        const offlineCtx = new OfflineAudioContext(
-            audioBuffer.numberOfChannels,
-            audioBuffer.length,
-            audioBuffer.sampleRate
-        );
-
-        const inputL = audioBuffer.getChannelData(0);
-        const inputR = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : inputL;
-        const renderedBuffer = offlineCtx.createBuffer(2, audioBuffer.length, audioBuffer.sampleRate);
-        const outL = renderedBuffer.getChannelData(0);
-        const outR = renderedBuffer.getChannelData(1);
-
-        const samplesPerStep = Math.floor((60 / config.bpm / 4) * audioBuffer.sampleRate);
-
-        for (let pos = 0; pos < audioBuffer.length; pos++) {
-            const step = Math.floor((pos / samplesPerStep) % STEPS);
-            
-            let activeRate = 0;
-            let isReverse = gridMatrix[6][step] === 1;
-            let isPitchUp = gridMatrix[7][step] === 1;
-            let isCrushed = gridMatrix[8][step] === 1;
-
-            for (let r = 0; r <= 5; r++) {
-                if (gridMatrix[r][step] === 1) activeRate = ROWS[r].rate;
-            }
-
-            let readPos = pos;
-            let gain = config.volume;
-            const pitchFactor = isPitchUp ? 1.498 : 1.0;
-
-            if (activeRate > 0) {
-                const sliceLength = Math.floor(samplesPerStep / activeRate);
-                const stepStartPos = pos - (pos % samplesPerStep);
-                let sliceOffset = (pos % sliceLength);
-
-                if (isReverse) sliceOffset = sliceLength - sliceOffset - 1;
-                if (sliceOffset >= sliceLength * config.gate) gain = 0;
-
-                readPos = Math.floor(stepStartPos + (sliceOffset * pitchFactor));
-            }
-
-            let rawL = (inputL[readPos % audioBuffer.length] || 0) * gain;
-            let rawR = (inputR[readPos % audioBuffer.length] || 0) * gain;
-
-            if (isCrushed) {
-                const stepVal = Math.pow(0.5, 4);
-                rawL = Math.floor(rawL / stepVal) * stepVal;
-                rawR = Math.floor(rawR / stepVal) * stepVal;
-            }
-
-            outL[pos] = rawL;
-            outR[pos] = rawR;
-        }
-
-        const wavData = bufferToWave(renderedBuffer, audioBuffer.length);
-        const blob = new Blob([wavData], { type: 'audio/wav' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'glitch-export.wav';
-        a.click();
-        statusDiv.textContent = 'Render finished! Export downloaded.';
-    });
-
-    function bufferToWave(abuffer, len) {
-        let numOfChan = abuffer.numberOfChannels,
-            length = len * numOfChan * 2 + 44,
-            buffer = new ArrayBuffer(length),
-            view = new DataView(buffer),
-            channels = [], i, sample,
-            offset = 0, pos = 0;
-
-        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
-        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
-
-        setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157);
-        setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan);
-        setUint32(abuffer.sampleRate); setUint32(abuffer.sampleRate * 2 * numOfChan);
-        setUint16(numOfChan * 2); setUint16(16); setUint32(0x61746164);
-        setUint32(length - pos - 4);
-
-        for (i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
-
-        while (offset < len) {
-            for (i = 0; i < numOfChan; i++) {
-                sample = Math.max(-1, Math.min(1, channels[i][offset]));
-                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-                view.setInt16(pos, sample, true); pos += 2;
-            }
-            offset++;
-        }
-        return buffer;
-    }
+  function drawScope(){
+    const bins = new Uint8Array(nodes.analyser.frequencyBinCount);
+    (function loop(){
+      requestAnimationFrame(loop);
+      const w = scope.clientWidth, h = scope.clientHeight;
+      nodes.analyser.getByteFrequencyData(bins);
+      sctx.clearRect(0,0,w,h);
+      const bars = 64, bw = w/bars;
+      for(let i=0;i<bars;i++){
+        const v = bins[Math.floor(i*bins.length/bars/1.6)]/255;
+        const bh = Math.max(2, v*h);
+        sctx.fillStyle = "rgba(231,251,98,"+(0.25+v*0.75)+")";
+        sctx.fillRect(i*bw+1, h-bh, bw-2, bh);
+      }
+      const cw = cloud.clientWidth, chh = cloud.clientHeight;
+      cctx.clearRect(0,0,cw,chh);
+      for(const b of blobs){
+        b.a -= 0.012; if(b.a<=0) continue;
+        cctx.beginPath(); cctx.arc(b.x*cw, b.y*chh, b.r, 0, 6.284);
+        cctx.fillStyle = "rgba(231,251,98,"+(b.a*0.35)+")"; cctx.fill();
+      }
+      while(blobs.length && blobs[0].a<=0) blobs.shift();
+    })();
+  }
+})();
 </script>
 </body>
 </html>
